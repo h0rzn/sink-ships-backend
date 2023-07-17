@@ -1,5 +1,6 @@
 package main
 
 func main() {
-	matrixMap()
+	app := NewApp()
+	app.Run()
 }
