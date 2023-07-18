@@ -5,6 +5,12 @@ type Cords struct {
 	Y int `json:"y"`
 }
 
-type Move struct {
-	
+type PlaceShipsMove struct {
+	Author string
+	Ships []Ship
+}
+
+type ShootMove struct {
+	Author string
+	Cords *Cords
 }

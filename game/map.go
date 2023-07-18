@@ -45,14 +45,14 @@ func (m *Map) Init() {
 	}
 }
 
-func (m *Map) PlaceShips(ships []*Ship) {
+func (m *Map) PlaceShips(ships []Ship) {
 	for _, ship := range ships {
 		for _, section := range ship.Sections {
 			secX := section.Cords.X
 			secY := section.Cords.Y
 
 			m.Cells[secX][secY].isSection = true
-			m.Ships = append(m.Ships, ship)
+			m.Ships = append(m.Ships, &ship)
 		}
 	}
 }

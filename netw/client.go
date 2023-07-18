@@ -65,7 +65,12 @@ func (c *Client) HandleMessage(frame *BaseMessage) (err error) {
 			fmt.Println("[client] err", err)
 			return
 		}
-		_ = data
+
+		move := &game.PlaceShipsMove{
+			Author: c.ID,
+			Ships:  data,
+		}
+		c.Game.MovesIn <- move
 
 	case "shoot":
 		fmt.Println("[proxy] handling <shoot>")
@@ -75,7 +80,13 @@ func (c *Client) HandleMessage(frame *BaseMessage) (err error) {
 			fmt.Println("[proxy] err", err)
 			return err
 		}
-		_ = data
+		
+		move := &game.ShootMove{
+			Author: c.ID,
+			Cords: data,
+		}
+
+		c.Game.MovesIn <- move
 
 	default:
 		fmt.Println("huhu")

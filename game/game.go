@@ -14,12 +14,13 @@ const (
 
 type Game struct {
 	ID           string
-	Players      map[*Player](chan interface{})
+	Players      map[string]*Player
 	ActivePlayer string
 	State        int
 	MovesIn      chan interface{}
 }
 
+// Server -> WS-Client
 type Update struct {
 	Cords    Cords
 	Author   string
@@ -30,31 +31,43 @@ type Update struct {
 func NewGame() *Game {
 	return &Game{
 		ID:           "game-id",
-		Players:      make(map[*Player](chan interface{})),
+		Players:      make(map[string]*Player),
 		ActivePlayer: "123",
 		State:        StateUnstarted,
 		MovesIn:      make(chan interface{}),
 	}
 }
 
-func (g *Game) Join(p *Player) (updates chan interface{}, err error) {
+func (g *Game) Join(p *Player) (chan interface{}, error) {
 	if len(g.Players) >= 2 {
 		return nil, errors.New("max party size reached")
 	}
 
-	for player := range g.Players {
-		if player.ID == p.ID {
-			return nil, errors.New("duplicate player id")
-		}
+	if _, exists := g.Players[p.ID]; !exists {
+		player := NewPlayer()
+		g.Players[p.ID] = player
+		return player.UpdateIn, nil
 	}
 
-	g.Players[p] = make(chan interface{})
-	return
+	return nil, errors.New("duplicate player id")
 }
 
 func (g *Game) Start() (err error) {
 	if len(g.Players) != 2 {
 		return errors.New("game requires 2 parties")
+	}
+
+	// send maps
+	for id, player := range g.Players {
+		enemy, err := g.getEnemy(id)
+		if err != nil {
+			return errors.New("error messag here")
+		}
+		_, _  = enemy, player
+		
+		update := struct{}{}
+		enemy.UpdateIn <- update
+
 	}
 
 	return
@@ -97,11 +110,30 @@ func (g *Game) GetWinner() bool {
 	return true
 }
 
+func (g *Game) getEnemy(id string) (*Player, error) {
+	return &Player{}, nil
+}
+
 func (g *Game) Run() {
 	for move := range g.MovesIn {
 		switch m := move.(type) {
-		case nil:
-			_ = m
+		// place move
+		case PlaceShipsMove:
+			if player, exists := g.Players[m.Author]; exists {
+				player.Map.PlaceShips(m.Ships)
+
+			}
+		case ShootMove:
+			if player, exists := g.Players[m.Author]; exists {
+				result := player.Map.Shoot(*m.Cords)
+				enemy, err := g.getEnemy(player.ID)
+				if err != nil {
+					break
+				}
+				enemy.UpdateIn <- result
+			}
+
+		default:
 		}
 	}
 }
