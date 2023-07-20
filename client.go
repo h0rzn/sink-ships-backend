@@ -26,12 +26,13 @@ func NewClient(id string, con *websocket.Conn, games *GamePool) *Client {
 }
 
 func (c *Client) Join(g *game.Game) (err error) {
-	player := game.NewPlayer()
+	player := game.NewPlayer(c.ID)
 	c.Game = g
-	if updates, err := c.Game.Join(player); err == nil {
-		c.UpdateIn = updates
-
+	err = c.Game.Join(player);
+	if err != nil {
+		return err
 	}
+	
 	return
 }
 
@@ -42,7 +43,6 @@ func (c *Client) Read() {
 	var authFrame *AuthFrame
 	err := c.Con.ReadJSON(authFrame)
 	if err != nil {
-		// abort connection
 		return
 	}
 	// validate auth
@@ -98,14 +98,18 @@ func (c *Client) HandleMessage(frame *BaseMessage) (err error) {
 		c.Game.MovesIn <- move
 
 	default:
-		fmt.Println("huhu")
 	}
 
 	return
 }
 
 func (c *Client) Send(msg interface{}) {
-	fmt.Println("[client] sending update", msg)
+	err := c.Con.WriteJSON(msg)
+	if err != nil {
+		// handle error
+		return
+	}
+	fmt.Println("[client] send:", msg)
 }
 
 func (c *Client) Close() {

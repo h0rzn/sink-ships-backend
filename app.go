@@ -34,17 +34,17 @@ func (a *App) Run() {
 }
 
 func (a *App) wsHandler(w http.ResponseWriter, r *http.Request) {
-	// defer close?
 	con, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Fatalln(err)
 		return
 	}
+	defer con.Close()
+
 	fmt.Println("[app] handling ws")
 
 	fakeClientID := a.genID()
 	c := NewClient(fakeClientID, con, a.Games)
-
 	c.Read()
 }
 

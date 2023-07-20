@@ -57,8 +57,17 @@ func (m *Map) PlaceShips(ships []Ship) {
 	}
 }
 
-func (m *Map) GetShip(cords Cords) (*Ship, bool) {
-	return &Ship{}, false
+func (m *Map) getShip(cords Cords) (*Ship, bool) {
+	// properly configure range on ship and 
+	// then query that instead
+	for _, ship := range m.Ships {
+		for _, section := range ship.Sections {
+			if section.Cords == cords {
+				return ship, true
+			}
+		}
+	}
+	return nil, false
 }
 
 func (m *Map) Shoot(cords Cords) int {
@@ -67,7 +76,7 @@ func (m *Map) Shoot(cords Cords) int {
 		return CellRedundantShot
 	}
 
-	if ship, exists := m.GetShip(cords); exists {
+	if ship, exists := m.getShip(cords); exists {
 		if ship.Shoot(cords) {
 			return CellFatalHit
 		} else {

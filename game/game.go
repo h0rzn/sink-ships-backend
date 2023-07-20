@@ -38,18 +38,17 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) Join(p *Player) (chan interface{}, error) {
+func (g *Game) Join(p *Player) error {
 	if len(g.Players) >= 2 {
-		return nil, errors.New("max party size reached")
+		return errors.New("max party size reached")
 	}
 
 	if _, exists := g.Players[p.ID]; !exists {
-		player := NewPlayer()
-		g.Players[p.ID] = player
-		return player.UpdateIn, nil
+		return errors.New("duplicate player id")
 	}
 
-	return nil, errors.New("duplicate player id")
+	g.Players[p.ID] = p
+	return nil
 }
 
 func (g *Game) Start() (err error) {
@@ -63,8 +62,8 @@ func (g *Game) Start() (err error) {
 		if err != nil {
 			return errors.New("error messag here")
 		}
-		_, _  = enemy, player
-		
+		_, _ = enemy, player
+
 		update := struct{}{}
 		enemy.UpdateIn <- update
 

@@ -7,7 +7,7 @@ type Player struct {
 	UpdateIn chan interface{}
 }
 
-func NewPlayer() *Player {
+func NewPlayer(id string) *Player {
 	return &Player{
 		ID:    "party-id-here",
 		Moves: 0,
