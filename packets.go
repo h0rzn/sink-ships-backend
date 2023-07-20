@@ -1,6 +1,8 @@
-package netw
+package main
 
 import "encoding/json"
+
+type AuthFrame struct{}
 
 type BaseMessage struct {
 	Type string          `json:"type"`

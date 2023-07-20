@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/h0rzn/sink-ships/game"
-	"github.com/h0rzn/sink-ships/netw"
 )
 
 var upgrader = websocket.Upgrader{
@@ -19,13 +17,14 @@ var upgrader = websocket.Upgrader{
 }
 
 type App struct {
-	Games   map[string]*game.Game
-	Clients map[string]*netw.Client
+	Games   *GamePool
+	Clients map[string]*Client
 }
 
 func NewApp() *App {
 	return &App{
-		Clients: make(map[string]*netw.Client),
+		Games:   NewGamePool(),
+		Clients: make(map[string]*Client),
 	}
 }
 
@@ -43,12 +42,12 @@ func (a *App) wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("[app] handling ws")
 
-	fakeRequestedGameID := "000"
-	fakeClientID := "999"
-	c := netw.NewClient(fakeClientID, con)
-	if game, ok := a.Games[fakeRequestedGameID]; ok {
-		c.Join(game)
-		a.Clients[fakeClientID] = c
-	}
+	fakeClientID := a.genID()
+	c := NewClient(fakeClientID, con, a.Games)
 
+	c.Read()
+}
+
+func (a *App) genID() string {
+	return ""
 }

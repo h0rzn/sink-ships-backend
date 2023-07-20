@@ -1,4 +1,4 @@
-package netw
+package main
 
 import (
 	"encoding/json"
@@ -13,13 +13,15 @@ type Client struct {
 	ID       string
 	Con      *websocket.Conn
 	Game     *game.Game
+	Games    *GamePool
 	UpdateIn chan interface{}
 }
 
-func NewClient(id string, con *websocket.Conn) *Client {
+func NewClient(id string, con *websocket.Conn, games *GamePool) *Client {
 	return &Client{
-		ID:  id,
-		Con: con,
+		ID:    id,
+		Con:   con,
+		Games: games,
 	}
 }
 
@@ -37,6 +39,13 @@ func (c *Client) Read() {
 	defer c.Con.Close()
 
 	// handle auth
+	var authFrame *AuthFrame
+	err := c.Con.ReadJSON(authFrame)
+	if err != nil {
+		// abort connection
+		return
+	}
+	// validate auth
 
 	for {
 		var frame *BaseMessage
@@ -80,10 +89,10 @@ func (c *Client) HandleMessage(frame *BaseMessage) (err error) {
 			fmt.Println("[proxy] err", err)
 			return err
 		}
-		
+
 		move := &game.ShootMove{
 			Author: c.ID,
-			Cords: data,
+			Cords:  data,
 		}
 
 		c.Game.MovesIn <- move
