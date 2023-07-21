@@ -58,13 +58,10 @@ func (m *Map) PlaceShips(ships []Ship) {
 }
 
 func (m *Map) getShip(cords Cords) (*Ship, bool) {
-	// properly configure range on ship and 
-	// then query that instead
 	for _, ship := range m.Ships {
-		for _, section := range ship.Sections {
-			if section.Cords == cords {
-				return ship, true
-			}
+		on := ship.On(cords)
+		if on {
+			return ship, true
 		}
 	}
 	return nil, false
