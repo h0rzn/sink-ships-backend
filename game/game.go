@@ -58,7 +58,7 @@ func (g *Game) Start() (err error) {
 
 	// send maps
 	for id, player := range g.Players {
-		enemy, err := g.getEnemy(id)
+		enemy, err := g.otherPlayer(id)
 		if err != nil {
 			return errors.New("error messag here")
 		}
@@ -66,7 +66,6 @@ func (g *Game) Start() (err error) {
 
 		update := struct{}{}
 		enemy.UpdateIn <- update
-
 	}
 
 	return
@@ -78,6 +77,10 @@ func (g *Game) Ready() bool {
 	return false
 }
 
+func (g *Game) GameOver(update *Update) {
+	// clean up
+}
+
 func (g *Game) shoot(cords Cords, player *Player) (update *Update, err error) {
 	fmt.Printf("[game->shoot] %#v \n %#v\n", cords, player)
 
@@ -86,37 +89,47 @@ func (g *Game) shoot(cords Cords, player *Player) (update *Update, err error) {
 	}
 
 	fmt.Println("[game->shoot]", cords)
+	enemy, err := g.otherPlayer(player.ID)
+	if err != nil {
+		return nil, errors.New("unkown enemy player")
+	}
 	cellStatus := player.Map.Shoot(cords)
+
 
 	if cellStatus != CellRedundantShot {
 		update := &Update{
 			Cords:    cords,
 			Author:   player.ID,
 			Status:   cellStatus,
-			GameOver: player.Map.ShipsSunken(),
+			GameOver: enemy.Map.ShipsSunken(),
 		}
 		return update, nil
 	}
 	return update, nil
 }
 
-func (g *Game) ActivePlayerID() string {
+func (g *Game) GetActivePlayerID() string {
 	return g.ActivePlayer
 }
 
-func (g *Game) GetWinner() bool {
-
-	return true
+func (g *Game) switchTurns() error {
+	otherPlayer, err := g.otherPlayer(g.ActivePlayer)
+	g.ActivePlayer = otherPlayer.ID
+	return err
 }
 
-func (g *Game) getEnemy(id string) (*Player, error) {
-	return &Player{}, nil
+func (g *Game) otherPlayer(id string) (*Player, error) {
+	for pid, p := range g.Players {
+		if pid != id {
+			return p, nil
+		}
+	}
+	return nil, errors.New("failed to get other player")
 }
 
 func (g *Game) Run() {
 	for move := range g.MovesIn {
 		switch m := move.(type) {
-		// place move
 		case PlaceShipsMove:
 			if player, exists := g.Players[m.Author]; exists {
 				player.Map.PlaceShips(m.Ships)
@@ -124,14 +137,24 @@ func (g *Game) Run() {
 			}
 		case ShootMove:
 			if player, exists := g.Players[m.Author]; exists {
-				result := player.Map.Shoot(*m.Cords)
-				enemy, err := g.getEnemy(player.ID)
+				update, err := g.shoot(*m.Cords, player)
 				if err != nil {
 					break
 				}
-				enemy.UpdateIn <- result
-			}
+				if enemy, err := g.otherPlayer(player.ID); err == nil {
+					enemy.UpdateIn <- update
 
+					// player sunk all enemies ships
+					// game is over
+					if update.GameOver {
+						g.GameOver(update)
+						return
+					} else {
+						g.switchTurns()
+					}
+
+				}
+			}
 		default:
 		}
 	}

@@ -28,11 +28,11 @@ func NewClient(id string, con *websocket.Conn, games *GamePool) *Client {
 func (c *Client) Join(g *game.Game) (err error) {
 	player := game.NewPlayer(c.ID)
 	c.Game = g
-	err = c.Game.Join(player);
+	err = c.Game.Join(player)
 	if err != nil {
 		return err
 	}
-	
+
 	return
 }
 
@@ -61,7 +61,7 @@ func (c *Client) Read() {
 	}
 }
 func (c *Client) HandleMessage(frame *BaseMessage) (err error) {
-	if c.Game.ActivePlayerID() != c.ID {
+	if c.Game.GetActivePlayerID() != c.ID {
 		return errors.New("ignoring move request: not my turn")
 	}
 
