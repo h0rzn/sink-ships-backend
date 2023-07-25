@@ -13,15 +13,15 @@ type Client struct {
 	ID       string
 	Con      *websocket.Conn
 	Game     *game.Game
-	Games    *GamePool
+	Hub    *Hub
 	UpdateIn chan interface{}
 }
 
-func NewClient(id string, con *websocket.Conn, games *GamePool) *Client {
+func NewClient(id string, con *websocket.Conn, hub *Hub) *Client {
 	return &Client{
 		ID:    id,
 		Con:   con,
-		Games: games,
+		Hub: hub,
 	}
 }
 
@@ -39,13 +39,13 @@ func (c *Client) Join(g *game.Game) (err error) {
 func (c *Client) Read() {
 	defer c.Con.Close()
 
-	// handle auth
-	var authFrame *AuthFrame
-	err := c.Con.ReadJSON(authFrame)
+	// handle register
+	err := c.HandleRegister()
 	if err != nil {
+		// send error message
+		// close client
 		return
 	}
-	// validate auth
 
 	for {
 		var frame *BaseMessage
@@ -60,6 +60,55 @@ func (c *Client) Read() {
 
 	}
 }
+
+func (c *Client) HandleRegister() error {
+	var registerFrame *RegisterFrame
+	err := c.Con.ReadJSON(registerFrame)
+	if err != nil {
+		return err
+	}
+	if registerFrame.Type != "register" {
+		fmt.Println("first message is not of type 'register'")
+	}
+	if registerFrame.Key != "some_key" {
+		fmt.Println("first message contains invalid register key")
+	}
+	switch registerFrame.Action {
+	case "create":
+		g := c.Hub.CreateGame()
+		player, err := g.AddClient(c.ID)
+		if err != nil {
+			return err
+		}
+		_ = player
+		c.Game = g
+		// send game info to client
+	case "join":
+		var data *RegisterJoinData
+		err := c.Con.ReadJSON(data)
+		if err != nil {
+			return err
+		}
+
+		if g, exists := c.Hub.JoinGame(c, data.GameID); exists {
+			c.Game = g
+			// send game info to client
+			response := &RegisterResponse{
+				Type: "register_response",
+				PlayerID: c.ID,
+				GameID: g.ID,
+			}
+			c.Send(response)
+		} else {
+			return err
+		}
+
+	default:
+		return err
+	}
+	return nil
+}
+
 func (c *Client) HandleMessage(frame *BaseMessage) (err error) {
 	if c.Game.GetActivePlayerID() != c.ID {
 		return errors.New("ignoring move request: not my turn")
@@ -99,7 +148,6 @@ func (c *Client) HandleMessage(frame *BaseMessage) (err error) {
 
 	default:
 	}
-
 	return
 }
 

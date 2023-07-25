@@ -2,7 +2,29 @@ package main
 
 import "encoding/json"
 
-type AuthFrame struct{}
+type RegisterFrame struct {
+	Type string `json:"type"`
+	Key string `json:"key"`
+	Action string `json:"action"`
+	PlayerName string `json:"player_name"`
+	Data interface{}
+}
+
+type RegisterJoinData struct {
+	GameID string `json:"game_id"`
+}
+
+type RegisterCreateData struct {
+	
+}
+
+type RegisterResponse struct {
+	Type string `json:"type"`
+	PlayerID string `json:"id"`
+	GameID string `json:"game_id"`
+}
+
+type ErrorMessage struct {}
 
 type BaseMessage struct {
 	Type string          `json:"type"`

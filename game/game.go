@@ -51,6 +51,12 @@ func (g *Game) Join(p *Player) error {
 	return nil
 }
 
+func (g *Game) AddClient(id string) (*Player, error) {
+	player := NewPlayer(id)
+	return player, g.Join(player)
+
+}
+
 func (g *Game) Start() (err error) {
 	if len(g.Players) != 2 {
 		return errors.New("game requires 2 parties")

@@ -17,14 +17,12 @@ var upgrader = websocket.Upgrader{
 }
 
 type App struct {
-	Games   *GamePool
-	Clients map[string]*Client
+	Hub *Hub
 }
 
 func NewApp() *App {
 	return &App{
-		Games:   NewGamePool(),
-		Clients: make(map[string]*Client),
+		Hub: NewHub(),
 	}
 }
 
@@ -44,8 +42,8 @@ func (a *App) wsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("[app] handling ws")
 
 	fakeClientID := a.genID()
-	c := NewClient(fakeClientID, con, a.Games)
-	c.Read()
+	client := NewClient(fakeClientID, con, a.Hub)
+	go client.Read()
 }
 
 func (a *App) genID() string {
