@@ -17,9 +17,8 @@ type Client struct {
 	UpdateIn chan interface{}
 }
 
-func NewClient(id string, con *websocket.Conn, hub *Hub) *Client {
+func NewClient(con *websocket.Conn, hub *Hub) *Client {
 	return &Client{
-		ID:    id,
 		Con:   con,
 		Hub: hub,
 	}
@@ -76,13 +75,12 @@ func (c *Client) HandleRegister() error {
 	switch registerFrame.Action {
 	case "create":
 		g := c.Hub.CreateGame()
-		player, err := g.AddClient(c.ID)
-		if err != nil {
-			return err
+		if g, exists := c.Hub.JoinGame(c, g.ID); exists {
+			if _, joined := c.Hub.JoinGame(c, g.ID); joined {
+				c.Game = g
+				// send create response to client
+			}
 		}
-		_ = player
-		c.Game = g
-		// send game info to client
 	case "join":
 		var data *RegisterJoinData
 		err := c.Con.ReadJSON(data)

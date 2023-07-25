@@ -3,42 +3,49 @@ package main
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/h0rzn/sink-ships/game"
 )
 
 type Hub struct {
-	// mu        *sync.Mutex
+	mu       *sync.Mutex
 	games    map[*game.Game]map[string]*Client
-	unhandled map[*Client]bool
-	gameOver  chan string
+	gameOver chan string
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		games: make(map[*game.Game]map[string]*Client),
+		games:    make(map[*game.Game]map[string]*Client),
 		gameOver: make(chan string),
 	}
 }
 
 func (h *Hub) CreateGame() *game.Game {
-	game := game.NewGame()
-	h.games[game] = make(map[string]*Client)
-	return game
+	h.mu.Lock()
+	g := game.NewGame()
+	h.games[g] = make(map[string]*Client)
+	h.mu.Unlock()
+	return g
 }
 
 func (h *Hub) DeleteGame(gid string) (err error) {
+	h.mu.Lock()
 	if game, exists := h.gameByID(gid); exists {
 		delete(h.games, game)
 	}
+	h.mu.Unlock()
 	return errors.New("hub -> delete game: cannot find game")
 }
 
 func (h *Hub) JoinGame(client *Client, gid string) (*game.Game, bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	if game, exists := h.gameByID(gid); exists {
-		h.games[game][client.ID] = client
+		clientID := h.randID()
+		h.games[game][clientID] = client
 
-		player, err := game.AddClient(client.ID)
+		player, err := game.AddClient(clientID)
 		if err != nil {
 			return nil, false
 		}
@@ -52,9 +59,11 @@ func (h *Hub) JoinGame(client *Client, gid string) (*game.Game, bool) {
 }
 
 func (h *Hub) LeaveGame(gid string, client *Client) {
+	h.mu.Lock()
 	if game, exists := h.gameByID(gid); exists {
 		delete(h.games[game], client.ID)
 	}
+	h.mu.Unlock()
 }
 
 func (h *Hub) gameByID(id string) (*game.Game, bool) {
@@ -76,6 +85,6 @@ func (h *Hub) Run() {
 	}
 }
 
-// func (h *Hub) randID() string {
-// 	return ""
-// }
+func (h *Hub) randID() string {
+	return ""
+}

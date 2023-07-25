@@ -41,11 +41,6 @@ func (a *App) wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("[app] handling ws")
 
-	fakeClientID := a.genID()
-	client := NewClient(fakeClientID, con, a.Hub)
+	client := NewClient(con, a.Hub)
 	go client.Read()
-}
-
-func (a *App) genID() string {
-	return ""
 }
